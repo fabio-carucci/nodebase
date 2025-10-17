@@ -51,7 +51,7 @@ const RegisterForm = () => {
   });
 
   const onSubmit = async (values: RegisterFormValues) => {
-    const { data, error } = await authClient.signUp.email(
+    await authClient.signUp.email(
       {
         name: values.email,
         email: values.email,
