@@ -1,12 +1,12 @@
-import prisma from "@/lib/database";
+import { caller } from "@/trpc/server";
 
 const Home = async () => {
-  const users = await prisma.user.findMany();
+  const users = await caller.getUsers();
 
   return (
-    <div className="min-h-screen min-w-screen flex items-center justify-center">
-      <h1>Home</h1>
-      <ul>
+    <div className="min-h-screen min-w-screen flex flex-col gap-4 items-center justify-center">
+      <h1>Users:</h1>
+      <ul className="list-disc list-inside">
         {users.map((user) => (
           <li key={user.id}>{user.name}</li>
         ))}
