@@ -1,25 +1,49 @@
-import prisma from "@/lib/database";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
+import { generateText } from "ai";
 import { inngest } from "./client";
 
-export const helloWorld = inngest.createFunction(
-  { id: "hello-world", retries: 3 },
-  { event: "test/hello.world" },
+const google = createGoogleGenerativeAI();
+const openai = createOpenAI();
+const anthropic = createAnthropic();
+
+export const executeAi = inngest.createFunction(
+  { id: "execute-ai", retries: 3 },
+  { event: "execute/ai" },
   async ({ event, step }) => {
-    // Fetching the video from YouTube
-    await step.sleep("fetching-video", "5s");
+    const { steps: geminiSteps } = await step.ai.wrap(
+      "gemini-generate-text",
+      generateText,
+      {
+        model: google("gemini-2.5-flash"),
+        system: "You are a helpful assistant.",
+        prompt: "Write a vegetarian lasagna recipe for 4 people.",
+      },
+    );
+    const { steps: openaiSteps } = await step.ai.wrap(
+      "openai-generate-text",
+      generateText,
+      {
+        model: openai("gpt-4o"),
+        system: "You are a helpful assistant.",
+        prompt: "Write a vegetarian lasagna recipe for 4 people.",
+      },
+    );
+    const { steps: anthropicSteps } = await step.ai.wrap(
+      "anthropic-generate-text",
+      generateText,
+      {
+        model: anthropic("claude-3-5-sonnet"),
+        system: "You are a helpful assistant.",
+        prompt: "Write a vegetarian lasagna recipe for 4 people.",
+      },
+    );
 
-    // Processing the video
-    await step.sleep("processing-video", "5s");
-
-    // Sending the video to Inngest
-    await step.sleep("sending-video", "5s");
-
-    await step.run("create-workflow", () => {
-      return prisma.workflow.create({
-        data: {
-          name: "workflow-from-inngest",
-        },
-      });
-    });
+    return {
+      geminiSteps,
+      openaiSteps,
+      anthropicSteps,
+    };
   },
 );
