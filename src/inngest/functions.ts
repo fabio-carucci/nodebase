@@ -19,6 +19,11 @@ export const executeAi = inngest.createFunction(
         model: google("gemini-2.5-flash"),
         system: "You are a helpful assistant.",
         prompt: "Write a vegetarian lasagna recipe for 4 people.",
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: true,
+          recordOutputs: true,
+        },
       },
     );
     const { steps: openaiSteps } = await step.ai.wrap(
@@ -28,6 +33,11 @@ export const executeAi = inngest.createFunction(
         model: openai("gpt-4o"),
         system: "You are a helpful assistant.",
         prompt: "Write a vegetarian lasagna recipe for 4 people.",
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: true,
+          recordOutputs: true,
+        },
       },
     );
     const { steps: anthropicSteps } = await step.ai.wrap(
@@ -37,6 +47,11 @@ export const executeAi = inngest.createFunction(
         model: anthropic("claude-3-5-sonnet"),
         system: "You are a helpful assistant.",
         prompt: "Write a vegetarian lasagna recipe for 4 people.",
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: true,
+          recordOutputs: true,
+        },
       },
     );
 
