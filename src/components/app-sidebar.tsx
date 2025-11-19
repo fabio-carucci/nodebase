@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   CreditCardIcon,
   FolderOpenIcon,
@@ -11,6 +12,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useHasActiveSubscription } from "@/features/subscriptions/hooks/use-subscription";
 import { authClient } from "@/lib/auth-client";
 import {
   Sidebar,
@@ -50,6 +52,8 @@ const menuItems = [
 export const AppSidebar = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { hasActiveSubscription, isLoading } = useHasActiveSubscription();
+  const queryClient = useQueryClient();
 
   return (
     <Sidebar collapsible="icon">
@@ -99,20 +103,22 @@ export const AppSidebar = () => {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              tooltip="Upgrade to Pro"
-              onClick={() => {}}
-              className="gap-x-4 h-10 px-4"
-            >
-              <StarIcon className="size-4" />
-              <span>Upgrade to Pro</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {!hasActiveSubscription && !isLoading && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Upgrade to Pro"
+                onClick={() => authClient.checkout({ slug: "Nodebase-Pro" })}
+                className="gap-x-4 h-10 px-4"
+              >
+                <StarIcon className="size-4" />
+                <span>Upgrade to Pro</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Billing Portal"
-              onClick={() => {}}
+              onClick={() => authClient.customer.portal()}
               className="gap-x-4 h-10 px-4"
             >
               <CreditCardIcon className="size-4" />
@@ -124,7 +130,12 @@ export const AppSidebar = () => {
               tooltip="Sign out"
               onClick={() =>
                 authClient.signOut({
-                  fetchOptions: { onSuccess: () => router.push("/login") },
+                  fetchOptions: {
+                    onSuccess: () => {
+                      queryClient.removeQueries({ queryKey: ["subscription"] });
+                      router.push("/login");
+                    },
+                  },
                 })
               }
               className="gap-x-4 h-10 px-4"
