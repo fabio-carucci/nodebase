@@ -20,7 +20,7 @@ export const ManualTriggerDialog = ({ open, onOpenChange }: Props) => {
         <DialogHeader>
           <DialogTitle>Manual Trigger</DialogTitle>
           <DialogDescription>
-            Configure settings for the manual trigger
+            Configure settings for the manual trigger node.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
