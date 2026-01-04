@@ -7,7 +7,6 @@ import Image from "next/image";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { NodeType } from "@/generated/prisma/enums";
-import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import {
   Sheet,
@@ -63,7 +62,7 @@ export function NodeSelector({
       if (selection.type === NodeType.MANUAL_TRIGGER) {
         const nodes = getNodes();
         const hasManualTrigger = nodes.some(
-          (node) => node.data.type === NodeType.MANUAL_TRIGGER,
+          (node) => node.type === NodeType.MANUAL_TRIGGER,
         );
         if (hasManualTrigger) {
           toast.error("A manual trigger already exists");
@@ -151,6 +150,7 @@ export function NodeSelector({
         </div>
 
         <Separator />
+
         <div>
           {executionNodes.map((nodeType) => {
             const Icon = nodeType.icon;
