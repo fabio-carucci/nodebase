@@ -41,6 +41,9 @@ export const topologicalSort = (nodes: Node[], connections: Connection[]) => {
   // Map sorted IDs back to node objects
   const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
-  // biome-ignore lint/style/noNonNullAssertion: <We know that the node exists>
-  return sortedNodesIds.map((id) => nodeMap.get(id)!).filter(Boolean);
+  return sortedNodesIds.map((id) => {
+    const node = nodeMap.get(id);
+    if (!node) throw new Error(`Node with ID ${id} not found in input nodes`);
+    return node;
+  });
 };
