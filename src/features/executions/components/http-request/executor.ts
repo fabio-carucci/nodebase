@@ -2,6 +2,7 @@ import Handlebars from "handlebars";
 import { NonRetriableError } from "inngest";
 import ky, { type Options as KyOptions } from "ky";
 import type { NodeExecutor } from "@/features/executions/types";
+import { httpRequestChannel } from "@/inngest/channels/http-request";
 
 Handlebars.registerHelper("json", (context) => {
   const jsonString = JSON.stringify(context, null, 2);
@@ -22,79 +23,85 @@ export const httpRequestExecutor: NodeExecutor<HttpRequestData> = async ({
   nodeId,
   context,
   step,
+  publish,
 }) => {
-  // TODO: Publish "loading" state for http request
+  await publish(httpRequestChannel().status({ nodeId, status: "loading" }));
 
   if (!data.endpoint) {
-    // TODO: Publish "error" state for http request
+    await publish(httpRequestChannel().status({ nodeId, status: "error" }));
     throw new NonRetriableError("HTTP Request Node: No endpoint configured");
   }
 
   if (!data.variableName) {
-    // TODO: Publish "error" state for http request
+    await publish(httpRequestChannel().status({ nodeId, status: "error" }));
     throw new NonRetriableError(
       "HTTP Request Node: Variable name not configured",
     );
   }
 
   if (!data.method) {
-    // TODO: Publish "error" state for http request
+    await publish(httpRequestChannel().status({ nodeId, status: "error" }));
     throw new NonRetriableError("HTTP Request Node: Method not configured");
   }
 
-  const result = await step.run("http-request", async () => {
-    // http://.../{{todo.httpResponse.data.userId}}
-    let endpoint: string;
-    try {
-      const template = Handlebars.compile(data.endpoint);
-      endpoint = template(context);
-      if (!endpoint || typeof endpoint !== "string") {
+  try {
+    const result = await step.run("http-request", async () => {
+      // http://.../{{todo.httpResponse.data.userId}}
+      let endpoint: string;
+      try {
+        const template = Handlebars.compile(data.endpoint);
+        endpoint = template(context);
+        if (!endpoint || typeof endpoint !== "string") {
+          throw new NonRetriableError(
+            "HTTP Request Node: Endpoint template must resolve to a non-empty string",
+          );
+        }
+      } catch (error) {
         throw new NonRetriableError(
-          "HTTP Request Node: Endpoint template must resolve to a non-empty string",
+          `HTTP Request Node: Failed to resolve endpoint template: ${error}`,
         );
       }
-    } catch (error) {
-      throw new NonRetriableError(
-        `HTTP Request Node: Failed to resolve endpoint template: ${error}`,
-      );
-    }
-    const method = data.method;
+      const method = data.method;
 
-    const options: KyOptions = {
-      method,
-    };
-
-    if (["POST", "PUT", "PATCH"].includes(method)) {
-      const resolved = Handlebars.compile(data.body || "{}")(context);
-      JSON.parse(resolved);
-      options.body = resolved;
-      options.headers = {
-        "Content-Type": "application/json",
+      const options: KyOptions = {
+        method,
       };
-    }
 
-    const response = await ky(endpoint, options);
-    const contentType = response.headers.get("content-type");
-    const responseData = contentType?.includes("application/json")
-      ? await response.json()
-      : await response.text();
+      if (["POST", "PUT", "PATCH"].includes(method)) {
+        const resolved = Handlebars.compile(data.body || "{}")(context);
+        JSON.parse(resolved);
+        options.body = resolved;
+        options.headers = {
+          "Content-Type": "application/json",
+        };
+      }
 
-    const responsePayload = {
-      httpResponse: {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        data: responseData,
-      },
-    };
+      const response = await ky(endpoint, options);
+      const contentType = response.headers.get("content-type");
+      const responseData = contentType?.includes("application/json")
+        ? await response.json()
+        : await response.text();
 
-    return {
-      ...context,
-      [data.variableName]: responsePayload,
-    };
-  });
+      const responsePayload = {
+        httpResponse: {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          data: responseData,
+        },
+      };
 
-  // TODO: Publish "success" state for http request
+      return {
+        ...context,
+        [data.variableName]: responsePayload,
+      };
+    });
 
-  return result;
+    await publish(httpRequestChannel().status({ nodeId, status: "success" }));
+
+    return result;
+  } catch (error) {
+    await publish(httpRequestChannel().status({ nodeId, status: "error" }));
+    throw error;
+  }
 };
