@@ -1,5 +1,6 @@
 import toposort from "toposort";
 import type { Connection, Node } from "@/generated/prisma/client";
+import { inngest } from "./client";
 
 export const topologicalSort = (nodes: Node[], connections: Connection[]) => {
   // If no connections, return node as-it (they're all indipendent)
@@ -45,5 +46,15 @@ export const topologicalSort = (nodes: Node[], connections: Connection[]) => {
     const node = nodeMap.get(id);
     if (!node) throw new Error(`Node with ID ${id} not found in input nodes`);
     return node;
+  });
+};
+
+export const sendWorkflowExecution = async (data: {
+  workflowId: string;
+  [key: string]: any;
+}) => {
+  await inngest.send({
+    name: "workflows/execute.workflow",
+    data,
   });
 };
